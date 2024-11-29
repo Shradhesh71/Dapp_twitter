@@ -1,0 +1,150 @@
+{
+  "version": "0.1.0",
+  "address": "31utvwA13kZZaTWcDCcwT2S1H877uRfKGydvnaMFXy2J",
+  "name": "twitter",
+  "instructions": [
+    {
+      "name": "initialize",
+      "accounts": [
+        { "name": "tweet_authority", "isMut": true, "isSigner": true },
+        { "name": "tweet", "isMut": true, "isSigner": false },
+        { "name": "system_program", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "topic", "type": "string" },
+        { "name": "content", "type": "string" }
+      ]
+    },
+    {
+      "name": "comment_tweet",
+      "accounts": [
+        { "name": "comment_author", "isMut": true, "isSigner": true },
+        { "name": "comment", "isMut": true, "isSigner": false },
+        { "name": "tweet", "isMut": true, "isSigner": false },
+        { "name": "system_program", "isMut": false, "isSigner": false }
+      ],
+      "args": [{ "name": "comment_content", "type": "string" }]
+    },
+    {
+      "name": "comment_remove",
+      "accounts": [
+        { "name": "comment_author", "isMut": true, "isSigner": true },
+        { "name": "comment", "isMut": true, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "like_tweet",
+      "accounts": [
+        { "name": "reaction_author", "isMut": true, "isSigner": true },
+        { "name": "tweet_reaction", "isMut": true, "isSigner": false },
+        { "name": "tweet", "isMut": true, "isSigner": false },
+        { "name": "system_program", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "dislike_tweet",
+      "accounts": [
+        { "name": "reaction_author", "isMut": true, "isSigner": true },
+        { "name": "tweet_reaction", "isMut": true, "isSigner": false },
+        { "name": "tweet", "isMut": true, "isSigner": false },
+        { "name": "system_program", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "reaction_remove",
+      "accounts": [
+        { "name": "reaction_author", "isMut": true, "isSigner": true },
+        { "name": "tweet_reaction", "isMut": true, "isSigner": false },
+        { "name": "tweet", "isMut": true, "isSigner": false }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Comment",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "comment_author", "type": "publicKey" },
+          { "name": "parent_tweet", "type": "publicKey" },
+          { "name": "content", "type": { "array": ["u8", 500] } },
+          { "name": "content_length", "type": "u16" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "Reaction",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "reaction_author", "type": "publicKey" },
+          { "name": "parent_tweet", "type": "publicKey" },
+          { "name": "reaction", "type": { "defined": "ReactionType" } },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "Tweet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "tweet_author", "type": "publicKey" },
+          { "name": "topic", "type": { "array": ["u8", 32] } },
+          { "name": "topic_length", "type": "u8" },
+          { "name": "content", "type": { "array": ["u8", 500] } },
+          { "name": "likes", "type": "u64" },
+          { "name": "dislikes", "type": "u64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "ReactionType",
+      "type": {
+        "kind": "enum",
+        "variants": [{ "name": "Like" }, { "name": "Dislike" }]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "TopicTooLong",
+      "msg": "Cannot initialize, topic too long"
+    },
+    {
+      "code": 6001,
+      "name": "ContentTooLong",
+      "msg": "Cannot initialize, content too long"
+    },
+    {
+      "code": 6002,
+      "name": "MaxLikesReached",
+      "msg": "Maximum number of Likes Reached"
+    },
+    {
+      "code": 6003,
+      "name": "MaxDislikesReached",
+      "msg": "Maximum number of Dislikes Reached"
+    },
+    {
+      "code": 6004,
+      "name": "MinLikesReached",
+      "msg": "Minimum number of Likes Reached"
+    },
+    {
+      "code": 6005,
+      "name": "MinDislikesReached",
+      "msg": "Minimum number of Dislikes Reached"
+    },
+    { "code": 6006, "name": "CommentTooLong", "msg": "Comment too Long" }
+  ]
+}
