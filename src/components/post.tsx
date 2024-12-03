@@ -9,6 +9,7 @@ import {
   MdOutlineLocationOn,
 } from "react-icons/md";
 import { CgPoll } from "react-icons/cg";
+import EmojiPicker from "emoji-picker-react";
 import { useAppContext } from "@/context/context";
 
 const TweetInput = () => {
@@ -16,6 +17,10 @@ const TweetInput = () => {
 
   const [topic, setTopic] = useState("");
   const [content, setContent] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeInput, setActiveInput] = useState<"topic" | "content" | null>(
+    null
+  );
 
   const postTweet = async () => {
     if (topic && content) {
@@ -27,8 +32,17 @@ const TweetInput = () => {
       setContent("");
     }
   };
+
+  const handleEmojiClick = (emojiObject: { emoji: string }) => {
+    if (activeInput === "topic") {
+      setTopic((prev) => prev + emojiObject.emoji);
+    } else if (activeInput === "content") {
+      setContent((prev) => prev + emojiObject.emoji);
+    }
+  };
+
   return (
-    <div className="flex flex-col p-4 bg-black text-white rounded-lg space-y-2 ml-10">
+    <div className="flex flex-col p-4 bg-black text-white rounded-lg space-y-2 ml-14">
       {/* Profile Picture and Input */}
       <div className="flex items-start space-x-3">
         {/* Profile Picture */}
@@ -42,14 +56,16 @@ const TweetInput = () => {
           <input
             type="text"
             value={topic}
+            onFocus={() => setActiveInput("topic")}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder="Enter topic (e.g., Technology, Sports)"
+            placeholder="Enter topic (ex:- Technology, Sports)"
             className="bg-black text-white px-4 py-2 rounded-lg outline-none placeholder-gray-500"
           />
           {/* Content Input Field */}
           <input
             type="text"
             value={content}
+            onFocus={() => setActiveInput("content")}
             onChange={(e) => setContent(e.target.value)}
             placeholder="What is happening?!"
             className="bg-black text-white px-4 py-2 rounded-lg outline-none text-xl placeholder-gray-500"
@@ -68,8 +84,19 @@ const TweetInput = () => {
           <CiCamera className="w-5 h-5 cursor-pointer" />
           <MdGif className="w-5 h-5 cursor-pointer" />
           <CgPoll className="w-5 h-5 cursor-pointer" />
-          <MdOutlineEmojiEmotions className="w-5 h-5 cursor-pointer" />
+          <MdOutlineEmojiEmotions
+            className="w-5 h-5 cursor-pointer"
+            onClick={() => setShowEmojiPicker((prev) => !prev)}
+          />
           <MdOutlineLocationOn className="w-5 h-5 cursor-pointer" />
+          {showEmojiPicker && (
+            <div className="absolute bottom-10 right-0 bg-white rounded-lg shadow-lg z-50">
+              <EmojiPicker
+                onEmojiClick={handleEmojiClick} // Handle emoji click
+                // theme="dark" // Optional: Matches dark mode
+              />
+            </div>
+          )}
         </div>
 
         {/* Post Button */}

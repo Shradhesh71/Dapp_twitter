@@ -169,7 +169,7 @@ const Feed: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-black text-white p-4 space-y-6">
+    <div className="bg-black text-white p-4 space-y-6 ml-12">
       {tweets.map((tweet) => (
         <Link href={`${tweet.author}/${tweet.id}`}>
           <div key={tweet.id} className="border-b border-gray-700 pb-4">
@@ -204,6 +204,11 @@ const Feed: React.FC = () => {
 
             {/* Footer (Engagement Buttons) */}
             <div className="flex justify-around mt-3 text-gray-500">
+              <button
+                className="text-blue-500"
+              >
+                <Link href={`${tweet.author}/${tweet.id}`}>💬</Link>
+              </button>
               <button
                 className="text-blue-500 hover:underline"
                 onClick={() => ReactionTweet(tweet.id, ReactionType.Like)}

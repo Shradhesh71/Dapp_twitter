@@ -42,7 +42,7 @@ export default function RootLayout({
               </div>
 
               {/* Right Sidebar / Extra Section w-5/12*/}
-              <div className="w-1/4 min-w-[240px] border-white border-l-2 p-4 overflow-y-auto">
+              <div className="w-1/2 min-w-[240px] border-white border-l-2 p-4 overflow-y-auto">
                 {/* <WhoToFollow suggestions={tweets} /> */}
                 <RightSide />
               </div>
