@@ -166,6 +166,7 @@ const TweetDetail = () => {
         TweetId!.toString(),
         connection
       );
+      console.log("fetchedComments: ", fetchedComments);
       setComments(fetchedComments);
     } catch (err) {
       console.error("Error fetching comments:", err);
@@ -176,11 +177,12 @@ const TweetDetail = () => {
     if (!newComment.trim()) return;
     setLoading(true);
     try {
+      console.log("tweet[0]?.id: " + tweet[0]?.id);
       await AddComment(tweet[0]?.id, newComment);
-      setNewComment("");
-      fetchComments(); // Refresh comments after adding
+      // setNewComment("");
+      // fetchComments(); // Refresh comments after adding
     } catch (err) {
-      console.error("Error adding comment:", err);
+      console.log("Error adding comment:", err);
     } finally {
       setLoading(false);
     }
@@ -192,18 +194,25 @@ const TweetDetail = () => {
         new PublicKey(tweetId),
         comment_content
       );
-      const tx = await program.methods
-        .commentTweet(comment_content)
-        .accounts({
-          comment_author: wallet.publicKey,
-          comment: commentAddress,
-          tweet: new PublicKey(tweetId),
-          system_program: SystemProgram.programId,
-        })
-        .rpc();
-      console.log("Commented on tweet, transaction hash:", tx);
+      console.log("commentAddress: " + commentAddress);
+      console.log("commentContent: " + comment_content);
+
+      try {
+        const tx = await program.methods
+          .commentTweet(comment_content)
+          .accounts({
+            comment_author: wallet.publicKey,
+            comment: commentAddress,
+            tweet: new PublicKey(tweetId),
+            system_program: SystemProgram.programId,
+          })
+          .rpc();
+        console.log("Commented on tweet, transaction hash:", tx);
+      } catch (err) {
+        console.log("Error AddComment 1 tweet:", err);
+      }
     } catch (err) {
-      console.error("Error AddComment tweet:", err);
+      console.log("Error AddComment 2 tweet:", err);
     }
   };
 
@@ -255,9 +264,7 @@ const TweetDetail = () => {
           >
             👎 dislikes ({tweet[0]?.dislikes})
           </button>
-          <div className="text-gray-400">
-            📝 Comments: {comments.length}
-          </div>
+          <div className="text-gray-400">📝 Comments: {comments.length}</div>
         </div>
       </div>
 

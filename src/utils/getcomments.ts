@@ -25,7 +25,7 @@ export const getComments = async (
 
     const comments = accounts.map((account: any) => {
       const data = account.account.data;
-
+      console.log(" comments data: " + data);
       // Extract fields based on your Comment struct
       const authorStart = 8; // `comment_author` starts at offset 0
       const authorEnd = 40; // PublicKey size is 32 bytes

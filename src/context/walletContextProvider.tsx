@@ -19,8 +19,8 @@ export default function WalletContextProvider({
 }) {
   const network = WalletAdapterNetwork.Devnet;
 
-  // const endpoint = web3.clusterApiUrl("devnet");
-  const endpoint = "https://rpc.ankr.com/solana_devnet";
+  const endpoint = web3.clusterApiUrl("devnet");
+  // const endpoint = "https://rpc.ankr.com/solana_devnet";
 
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],

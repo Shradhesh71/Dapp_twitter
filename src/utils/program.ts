@@ -64,25 +64,29 @@ export const getTweetReaction = async (
 
 export const getCommentAddress = async (
   comment_author: PublicKey,
-  TweetKey: PublicKey,
+  parentTweetKey: PublicKey,
   comment_content: string
 ) => {
   try {
-    const hash = crypto.createHash("sha256").update(Buffer.from(comment_content, "utf-8")).digest();
+    let hexString = crypto
+      .createHash("sha256")
+      .update(comment_content, "utf-8")
+      .digest("hex");
+    let content_seed = Uint8Array.from(Buffer.from(hexString, "hex"));
     return (
-      await PublicKey.findProgramAddress(
+       PublicKey.findProgramAddressSync(
         [
           Buffer.from(COMMENT_SEED),
           comment_author.toBuffer(),
-          hash,
-          TweetKey.toBuffer(),
+          content_seed,
+          parentTweetKey.toBuffer(),
         ],
         PROGRAM_ID
       )
     )[0];
   } catch (err: any) {
     console.error("Error in getTweetAddress: ", err.message);
-    throw err; // Re-throw to handle it in getTweetComment
+    throw err; 
   }
 };
 
