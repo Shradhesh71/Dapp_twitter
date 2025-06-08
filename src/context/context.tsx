@@ -5,14 +5,14 @@
 // Remove_likes
 
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { SystemProgram, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { createContext, useContext, useMemo, useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { confirmTx, mockWallet } from "../utils/helper";
 import { getProgram, getTweetAddress } from "@/utils/program";
 
 export const AppContext = createContext({
-  initTweet: async (topic: string, content: string) => {},
+  initTweet: async (topic: string, content: string, imageUrl?: string) => {},
 });
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
@@ -20,12 +20,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const wallet = useAnchorWallet()!;
   // console.log("Wallet PublicKey: ", wallet.publicKey);
 
+  // const programId = new PublicKey("9bd7tiPQiPnU3BJoitePtsvyeeuh7imw4Y6X8LGwLUBo");
+
   const program = useMemo(() => {
     if (connection) {
       return getProgram(connection, wallet ?? mockWallet);
     }
   }, [connection, wallet])!;
-  console.log("Program Methods: ", program.methods);
 
   // example of how to fetch data from the blockchain
   // const tweetAccount = async () => {
@@ -40,14 +41,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   // };
   // tweetAccount();
 
-  const initTweet = async (topic: string, content: string) => {
+  const initTweet = async (topic: string, content: string, image?: string) => {
     console.log("Running initTweet...");
     try {
       const tweetAddress = await getTweetAddress(topic, wallet.publicKey);
       console.log("tweetAddress: ", tweetAddress);
       console.log("SystemProgram.programId: ", SystemProgram.programId);
       const txHash = await program.methods
-        .initialize(topic, content)
+        .initialize(topic, content, image ? image : null)
         .accounts({
           tweet_authority: wallet.publicKey,
           tweet: tweetAddress,

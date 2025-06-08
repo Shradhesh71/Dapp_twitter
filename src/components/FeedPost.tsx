@@ -231,7 +231,6 @@
 
 // export default Feed;
 
-
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -244,7 +243,7 @@ import {
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { mockWallet } from "@/utils/helper";
 import Link from "next/link";
-import { ReactionType, TWEET_LEN } from "@/utils/constants";
+import { IMAGE_LENGTH, ReactionType, TWEET_LEN } from "@/utils/constants";
 import { CiHeart, CiChat1 } from "react-icons/ci";
 import { FiThumbsDown, FiExternalLink } from "react-icons/fi";
 
@@ -264,7 +263,9 @@ type Tweet = {
 const Feed: React.FC = () => {
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeReactions, setActiveReactions] = useState<Record<string, ReactionType | null>>({});
+  const [activeReactions, setActiveReactions] = useState<
+    Record<string, ReactionType | null>
+  >({});
   const { connection } = useConnection();
   const wallet = useAnchorWallet()!;
 
@@ -279,12 +280,13 @@ const Feed: React.FC = () => {
     setIsLoading(true);
     try {
       const accounts = await connection.getProgramAccounts(PROGRAM_ID);
-      
+
       const fetchedTweets = accounts
-        .filter((account:any) => account.account.data.length === 590)
-        .map((account:any) => {
+        .filter((account: any) => account.account.data.length === 590)
+        .map((account: any) => {
           const data = account.account.data;
           const id = account.pubkey.toBase58();
+          console.log("Account Data: ", data); 
 
           // Offsets based on the Rust struct layout
           const authorStart = 8;
@@ -297,6 +299,8 @@ const Feed: React.FC = () => {
           const likesOffset = contentEnd; // u64 for likes (8 bytes)
           const dislikesOffset = likesOffset + 8; // u64 for dislikes
           const bumpOffset = dislikesOffset + 8; // u8 for bump
+          const imageStart = bumpOffset + 1;
+          const imageEnd = imageStart + IMAGE_LENGTH;
 
           // Extract data
           const author = new PublicKey(
@@ -318,6 +322,17 @@ const Feed: React.FC = () => {
             8
           ).getBigUint64(0, true); // u64
 
+          const imageRaw = Buffer.from(data.slice(imageStart, imageEnd));
+          let imageUrl = imageRaw.toString("utf-8").replace(/\0/g, "");
+          // If it’s all zeros, then imageUrl === "". You can treat that as “no image.”
+          if (imageUrl === "") {
+            imageUrl = "null";
+          }
+
+          console.log({
+            image: imageUrl,
+          });
+
           // Return parsed tweet
           return {
             id: id,
@@ -326,16 +341,17 @@ const Feed: React.FC = () => {
             author: author,
             likes: Number(likes),
             dislikes: Number(dislikes),
+            image: imageUrl,
           };
         });
-        
+
       // Sort tweets with most interactions first
-      fetchedTweets.sort((a:any, b:any) => 
-        (b.likes + b.dislikes) - (a.likes + a.dislikes)
+      fetchedTweets.sort(
+        (a: any, b: any) => b.likes + b.dislikes - (a.likes + a.dislikes)
       );
-      
+
       setTweets(fetchedTweets);
-      
+
       // Check user's reactions to tweets
       if (wallet) {
         const reactionMap: Record<string, ReactionType | null> = {};
@@ -345,7 +361,7 @@ const Feed: React.FC = () => {
               new PublicKey(tweet.id),
               wallet.publicKey
             );
-            
+
             // Here we would ideally fetch the account data to see what type of reaction,
             // but for now we'll just mark that a reaction exists
             reactionMap[tweet.id] = null;
@@ -355,7 +371,6 @@ const Feed: React.FC = () => {
         }
         setActiveReactions(reactionMap);
       }
-      
     } catch (error) {
       console.error("Error fetching tweets:", error);
     } finally {
@@ -364,15 +379,18 @@ const Feed: React.FC = () => {
   };
 
   // Handle Like Button Click
-  const handleReaction = async (tweetId: string, reactionType: ReactionType) => {
+  const handleReaction = async (
+    tweetId: string,
+    reactionType: ReactionType
+  ) => {
     if (!wallet) return;
-    
+
     try {
       const tweet_reaction = await getTweetReaction(
         new PublicKey(tweetId),
         wallet.publicKey
       );
-      
+
       if (reactionType === ReactionType.Like) {
         const tx = await program.methods
           .likeTweet()
@@ -383,22 +401,19 @@ const Feed: React.FC = () => {
             system_program: SystemProgram.programId,
           })
           .rpc();
-        
+
         // Update local state to show like is active
-        setActiveReactions(prev => ({
+        setActiveReactions((prev) => ({
           ...prev,
-          [tweetId]: ReactionType.Like
+          [tweetId]: ReactionType.Like,
         }));
-        
+
         // Update the tweet in local state
-        setTweets(prev => 
-          prev.map(tweet => 
-            tweet.id === tweetId 
-              ? { ...tweet, likes: tweet.likes + 1 } 
-              : tweet
+        setTweets((prev) =>
+          prev.map((tweet) =>
+            tweet.id === tweetId ? { ...tweet, likes: tweet.likes + 1 } : tweet
           )
         );
-        
       } else {
         const tx = await program.methods
           .dislikeTweet()
@@ -409,25 +424,29 @@ const Feed: React.FC = () => {
             system_program: SystemProgram.programId,
           })
           .rpc();
-        
+
         // Update local state to show dislike is active
-        setActiveReactions(prev => ({
+        setActiveReactions((prev) => ({
           ...prev,
-          [tweetId]: ReactionType.Dislike
+          [tweetId]: ReactionType.Dislike,
         }));
-        
+
         // Update the tweet in local state
-        setTweets(prev => 
-          prev.map(tweet => 
-            tweet.id === tweetId 
-              ? { ...tweet, dislikes: tweet.dislikes + 1 } 
+        setTweets((prev) =>
+          prev.map((tweet) =>
+            tweet.id === tweetId
+              ? { ...tweet, dislikes: tweet.dislikes + 1 }
               : tweet
           )
         );
       }
-      
     } catch (err) {
-      console.error(`Error ${reactionType === ReactionType.Like ? 'liking' : 'disliking'} tweet:`, err);
+      console.error(
+        `Error ${
+          reactionType === ReactionType.Like ? "liking" : "disliking"
+        } tweet:`,
+        err
+      );
     }
   };
 
@@ -493,8 +512,8 @@ const Feed: React.FC = () => {
         </div>
       ) : (
         tweets.map((tweet) => (
-          <div 
-            key={tweet.id} 
+          <div
+            key={tweet.id}
             className="p-4 border-b border-gray-800 hover:bg-gray-900/30 transition-colors"
           >
             <Link href={`${tweet.author}/${tweet.id}`} className="block">
@@ -508,7 +527,7 @@ const Feed: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   {/* Author and timestamp */}
                   <div className="flex items-center text-sm">
@@ -518,17 +537,19 @@ const Feed: React.FC = () => {
                     <span className="text-gray-500 mx-1">·</span>
                     <span className="text-gray-500">{getRandomTime()}</span>
                   </div>
-                  
+
                   {/* Topic */}
                   <div className="mt-1">
                     <span className="inline-block px-2 py-0.5 bg-blue-900/30 text-blue-400 text-xs rounded-full">
                       {tweet.topic}
                     </span>
                   </div>
-                  
+
                   {/* Content */}
-                  <p className="mt-2 text-white whitespace-pre-wrap break-words">{tweet.content}</p>
-                  
+                  <p className="mt-2 text-white whitespace-pre-wrap break-words">
+                    {tweet.content}
+                  </p>
+
                   {/* Footer with action buttons */}
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex space-x-6">
@@ -539,40 +560,70 @@ const Feed: React.FC = () => {
                         </div>
                         <span className="text-xs ml-1">Comment</span>
                       </button>
-                      
+
                       {/* Like button */}
-                      <button 
-                        className={`group flex items-center ${activeReactions[tweet.id] === ReactionType.Like ? 'text-pink-500' : 'text-gray-500 hover:text-pink-500'}`}
+                      <button
+                        className={`group flex items-center ${
+                          activeReactions[tweet.id] === ReactionType.Like
+                            ? "text-pink-500"
+                            : "text-gray-500 hover:text-pink-500"
+                        }`}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           handleReaction(tweet.id, ReactionType.Like);
                         }}
                       >
-                        <div className={`p-1.5 rounded-full ${activeReactions[tweet.id] === ReactionType.Like ? 'bg-pink-500/10' : 'group-hover:bg-pink-500/10'}`}>
-                          <CiHeart className={`w-5 h-5 ${activeReactions[tweet.id] === ReactionType.Like ? 'fill-pink-500' : ''}`} />
+                        <div
+                          className={`p-1.5 rounded-full ${
+                            activeReactions[tweet.id] === ReactionType.Like
+                              ? "bg-pink-500/10"
+                              : "group-hover:bg-pink-500/10"
+                          }`}
+                        >
+                          <CiHeart
+                            className={`w-5 h-5 ${
+                              activeReactions[tweet.id] === ReactionType.Like
+                                ? "fill-pink-500"
+                                : ""
+                            }`}
+                          />
                         </div>
-                        <span className="text-xs ml-1">{tweet.likes || ''}</span>
+                        <span className="text-xs ml-1">
+                          {tweet.likes || ""}
+                        </span>
                       </button>
-                      
+
                       {/* Dislike button */}
-                      <button 
-                        className={`group flex items-center ${activeReactions[tweet.id] === ReactionType.Dislike ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
+                      <button
+                        className={`group flex items-center ${
+                          activeReactions[tweet.id] === ReactionType.Dislike
+                            ? "text-red-500"
+                            : "text-gray-500 hover:text-red-500"
+                        }`}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           handleReaction(tweet.id, ReactionType.Dislike);
                         }}
                       >
-                        <div className={`p-1.5 rounded-full ${activeReactions[tweet.id] === ReactionType.Dislike ? 'bg-red-500/10' : 'group-hover:bg-red-500/10'}`}>
+                        <div
+                          className={`p-1.5 rounded-full ${
+                            activeReactions[tweet.id] === ReactionType.Dislike
+                              ? "bg-red-500/10"
+                              : "group-hover:bg-red-500/10"
+                          }`}
+                        >
                           <FiThumbsDown className="w-5 h-5" />
                         </div>
-                        <span className="text-xs ml-1">{tweet.dislikes || ''}</span>
+                        <span className="text-xs ml-1">
+                          {tweet.dislikes || ""}
+                        </span>
                       </button>
                     </div>
-                    
+
                     {/* Solana Explorer Link */}
-                    <Link 
+                    <Link
                       href={`https://explorer.solana.com/address/${tweet.id}?cluster=devnet`}
                       target="_blank"
                       onClick={(e) => e.stopPropagation()}

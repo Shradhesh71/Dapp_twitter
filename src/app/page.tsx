@@ -36,9 +36,9 @@ export default function Home() {
   return (
     <div className="flex flex-col w-full">
       {/* Sticky header with backdrop blur */}
-      <div className={`sticky top-0 backdrop-blur-md z-10 px-4 py-3 ${isScrolled ? 'bg-black/70' : 'bg-transparent'} transition-all duration-300`}>
+      {/* <div className={`sticky top-0 backdrop-blur-md z-10 px-4 py-3 ${isScrolled ? 'bg-black/70' : 'bg-transparent'} transition-all duration-300`}>
         <h1 className="text-xl font-bold">Home</h1>
-      </div>
+      </div> */}
 
       {/* Post component */}
       <div className="mb-4">

@@ -12,7 +12,8 @@
       ],
       "args": [
         { "name": "topic", "type": "string" },
-        { "name": "content", "type": "string" }
+        { "name": "content", "type": "string" },
+        { "name": "image", "type": { "option": "string" } }
       ]
     },
     {

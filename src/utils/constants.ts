@@ -12,6 +12,7 @@ export const TWEET_LEN: number =
   32 + TOPIC_LENGTH + 1 + CONTENT_LENGTH + 8 + 8 + 1;
 export const REACTION_LEN: number = 32 + 32 + 1 + 1;
 export const COMMENT_LEN: number = 32 + 32 + COMMENT_LENGTH + 2 + 1;
+export const IMAGE_LENGTH: number = 200; 
 
 export enum ReactionType {
   Like,
@@ -21,3 +22,4 @@ export enum ReactionType {
 export const PROGRAM_ID = new PublicKey(
   "31utvwA13kZZaTWcDCcwT2S1H877uRfKGydvnaMFXy2J"
 );
+// 9bd7tiPQiPnU3BJoitePtsvyeeuh7imw4Y6X8LGwLUBo
