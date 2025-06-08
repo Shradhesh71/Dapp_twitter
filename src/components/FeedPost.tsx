@@ -246,6 +246,15 @@ import Link from "next/link";
 import { IMAGE_LENGTH, ReactionType, TWEET_LEN } from "@/utils/constants";
 import { CiHeart, CiChat1 } from "react-icons/ci";
 import { FiThumbsDown, FiExternalLink } from "react-icons/fi";
+import {
+  ExternalLink,
+  Heart,
+  MessageCircle,
+  MoreHorizontal,
+  Repeat2,
+  Share,
+} from "lucide-react";
+import { GrDislike } from "react-icons/gr";
 
 const PROGRAM_ID = new PublicKey(
   "31utvwA13kZZaTWcDCcwT2S1H877uRfKGydvnaMFXy2J"
@@ -263,6 +272,7 @@ type Tweet = {
 const Feed: React.FC = () => {
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [shareSuccess, setShareSuccess] = useState(false);
   const [activeReactions, setActiveReactions] = useState<
     Record<string, ReactionType | null>
   >({});
@@ -286,7 +296,7 @@ const Feed: React.FC = () => {
         .map((account: any) => {
           const data = account.account.data;
           const id = account.pubkey.toBase58();
-          console.log("Account Data: ", data); 
+          console.log("Account Data: ", data);
 
           // Offsets based on the Rust struct layout
           const authorStart = 8;
@@ -450,6 +460,35 @@ const Feed: React.FC = () => {
     }
   };
 
+  const handleShare = async (
+    author: string,
+    tweetId: string,
+    topic: string
+  ) => {
+    const shareData = {
+      title: topic,
+      text: `Check out this tweet on DECX: ${topic}!\nAuthor: ${author}.`,
+      url:
+        typeof window !== "undefined"
+          ? `${window.location.href}/${author}/${tweetId}`
+          : "",
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 2000);
+      } catch (err) {
+        // Optionally handle error
+      }
+    } else {
+      // Fallback: copy link to clipboard
+      await navigator.clipboard.writeText(shareData.url);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
+    }
+  };
+
   // Real-Time Updates
   useEffect(() => {
     fetchTweets();
@@ -503,141 +542,226 @@ const Feed: React.FC = () => {
     );
   }
 
+  if (tweets.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto bg-black min-h-screen">
+        <div className="text-center py-20">
+          <div className="text-gray-500 text-xl mb-4">No posts yet</div>
+          <p className="text-gray-600">Be the first to post something!</p>
+        </div>
+      </div>
+    );
+  }
+
+  const parseContentWithImage = (content: any) => {
+    const sjdecxMatch = content.match(/SJDECX:([^\s]+)/);
+    if (sjdecxMatch) {
+      const imageUrl = sjdecxMatch[1];
+      const textContent = content.replace(/SJDECX:[^\s]+\s?/, "").trim();
+      return { textContent, imageUrl };
+    }
+    return { textContent: content, imageUrl: null };
+  };
+
   return (
     <div className="space-y-1">
-      {tweets.length === 0 ? (
-        <div className="text-center py-10">
-          <div className="text-gray-500 mb-4">No posts yet</div>
-          <p className="text-gray-400">Be the first to post something!</p>
-        </div>
-      ) : (
-        tweets.map((tweet) => (
-          <div
+      {tweets.map((tweet) => {
+        const { textContent, imageUrl } = parseContentWithImage(tweet.content);
+
+        return (
+          <article
             key={tweet.id}
-            className="p-4 border-b border-gray-800 hover:bg-gray-900/30 transition-colors"
+            className="border-b border-gray-800 px-4 py-3 hover:bg-gray-950/50 transition-colors cursor-pointer"
           >
-            <Link href={`${tweet.author}/${tweet.id}`} className="block">
-              <div className="flex space-x-3">
-                {/* Avatar */}
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-purple-500">
-                    {/* First letter of address as avatar */}
-                    <div className="w-full h-full flex items-center justify-center text-white font-bold">
-                      {tweet.author.charAt(0).toUpperCase()}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  {/* Author and timestamp */}
-                  <div className="flex items-center text-sm">
-                    <span className="font-semibold text-white truncate">
-                      {formatAddress(tweet.author)}
-                    </span>
-                    <span className="text-gray-500 mx-1">·</span>
-                    <span className="text-gray-500">{getRandomTime()}</span>
-                  </div>
-
-                  {/* Topic */}
-                  <div className="mt-1">
-                    <span className="inline-block px-2 py-0.5 bg-blue-900/30 text-blue-400 text-xs rounded-full">
-                      {tweet.topic}
-                    </span>
-                  </div>
-
-                  {/* Content */}
-                  <p className="mt-2 text-white whitespace-pre-wrap break-words">
-                    {tweet.content}
-                  </p>
-
-                  {/* Footer with action buttons */}
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="flex space-x-6">
-                      {/* Comment button */}
-                      <button className="group flex items-center text-gray-500 hover:text-blue-400">
-                        <div className="p-1.5 rounded-full group-hover:bg-blue-400/10">
-                          <CiChat1 className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs ml-1">Comment</span>
-                      </button>
-
-                      {/* Like button */}
-                      <button
-                        className={`group flex items-center ${
-                          activeReactions[tweet.id] === ReactionType.Like
-                            ? "text-pink-500"
-                            : "text-gray-500 hover:text-pink-500"
-                        }`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleReaction(tweet.id, ReactionType.Like);
-                        }}
-                      >
-                        <div
-                          className={`p-1.5 rounded-full ${
-                            activeReactions[tweet.id] === ReactionType.Like
-                              ? "bg-pink-500/10"
-                              : "group-hover:bg-pink-500/10"
-                          }`}
-                        >
-                          <CiHeart
-                            className={`w-5 h-5 ${
-                              activeReactions[tweet.id] === ReactionType.Like
-                                ? "fill-pink-500"
-                                : ""
-                            }`}
-                          />
-                        </div>
-                        <span className="text-xs ml-1">
-                          {tweet.likes || ""}
-                        </span>
-                      </button>
-
-                      {/* Dislike button */}
-                      <button
-                        className={`group flex items-center ${
-                          activeReactions[tweet.id] === ReactionType.Dislike
-                            ? "text-red-500"
-                            : "text-gray-500 hover:text-red-500"
-                        }`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleReaction(tweet.id, ReactionType.Dislike);
-                        }}
-                      >
-                        <div
-                          className={`p-1.5 rounded-full ${
-                            activeReactions[tweet.id] === ReactionType.Dislike
-                              ? "bg-red-500/10"
-                              : "group-hover:bg-red-500/10"
-                          }`}
-                        >
-                          <FiThumbsDown className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs ml-1">
-                          {tweet.dislikes || ""}
-                        </span>
-                      </button>
-                    </div>
-
-                    {/* Solana Explorer Link */}
-                    <Link
-                      href={`https://explorer.solana.com/address/${tweet.id}?cluster=devnet`}
-                      target="_blank"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-gray-500 hover:text-blue-400 p-1.5 rounded-full hover:bg-blue-400/10"
-                    >
-                      <FiExternalLink className="w-4 h-4" />
-                    </Link>
-                  </div>
+            <div className="flex space-x-3">
+              {/* Avatar */}
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">
+                    {tweet.author.charAt(2).toUpperCase()}
+                  </span>
                 </div>
               </div>
-            </Link>
-          </div>
-        ))
-      )}
+
+              <div className="flex-1 min-w-0">
+                {/* Header */}
+                <div className="flex items-center space-x-1 text-sm">
+                  <span className="font-bold text-white hover:underline cursor-pointer">
+                    {formatAddress(tweet.author)}
+                  </span>
+                  <span className="text-gray-500">
+                    @{formatAddress(tweet.author)}
+                  </span>
+                  <span className="text-gray-500">·</span>
+                  <span className="text-gray-500 hover:underline cursor-pointer">
+                    {/* {tweet.timestamp} */}
+                  </span>
+                  <div className="flex-1"></div>
+                  <button className="p-1.5 rounded-full hover:bg-gray-800 text-gray-500 hover:text-white">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Topic Tag */}
+                <div className="mt-1">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/20 text-blue-400 border border-blue-800/30">
+                    #{tweet.topic}
+                  </span>
+                </div>
+
+                {/* Content */}
+                <Link href={`/${tweet.author}/${tweet.id}`}>
+                  <div className="mt-3">
+                    <p className="text-white text-[15px] leading-5 whitespace-pre-wrap break-words">
+                      {textContent}
+                    </p>
+
+                    {/* Image */}
+                    {imageUrl && (
+                      <div className="mt-3 rounded-2xl overflow-hidden border border-gray-700">
+                        <img
+                          src={imageUrl}
+                          alt="Post content"
+                          className="w-full max-h-96 object-cover hover:opacity-95 transition-opacity"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </Link>
+
+                {/* Actions */}
+                <div className="flex items-center justify-between mt-3 max-w-md">
+                  {/* Comment */}
+                  <button
+                    onClick={() => {
+                      window.location.href = `/${tweet.author}/${tweet.id}`;
+                    }}
+                    className="group flex items-center space-x-2 text-gray-500 hover:text-blue-400 transition-colors"
+                  >
+                    <div className="p-2 rounded-full group-hover:bg-blue-400/10 transition-colors">
+                      <MessageCircle className="w-[18px] h-[18px]" />
+                    </div>
+                    <span className="text-sm font-medium">
+                      {/* {stats.comments > 0 ? stats.comments : ""} */}
+                    </span>
+                  </button>
+
+                  {/* Retweet */}
+
+                  {/* <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // handleRetweet(tweet.id);
+                    }}
+                    className="group flex items-center space-x-2 text-gray-500 hover:text-green-400 transition-colors"
+                  >
+                    <div className="p-2 rounded-full group-hover:bg-green-400/10 transition-colors">
+                      <Repeat2 className="w-[18px] h-[18px]" />
+                    </div>
+                    <span className="text-sm font-medium">
+                      {stats.retweets > 0 ? stats.retweets : ""}
+                    </span>
+                  </button> */}
+
+                  {/* Like */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReaction(tweet.id, ReactionType.Like);
+                    }}
+                    className={`group flex items-center space-x-2 transition-colors ${
+                      activeReactions[tweet.id] === ReactionType.Like
+                        ? "text-red-500"
+                        : "text-gray-500 hover:text-red-500"
+                    }`}
+                  >
+                    <div
+                      className={`p-2 rounded-full transition-colors ${
+                        activeReactions[tweet.id] === ReactionType.Like
+                          ? "bg-red-500/10"
+                          : "group-hover:bg-red-500/10"
+                      }`}
+                    >
+                      <Heart
+                        className={`w-[18px] h-[18px] ${
+                          activeReactions[tweet.id] === ReactionType.Like
+                            ? "fill-current"
+                            : ""
+                        }`}
+                      />
+                    </div>
+                    <span className="text-sm font-medium">
+                      {tweet.likes > 0 ? tweet.likes : ""}
+                    </span>
+                  </button>
+
+                  {/* Dislike */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReaction(tweet.id, ReactionType.Dislike);
+                    }}
+                    className={`group flex items-center space-x-2 transition-colors ${
+                      activeReactions[tweet.id] === ReactionType.Dislike
+                        ? "text-red-500"
+                        : "text-gray-500 hover:text-red-500"
+                    }`}
+                  >
+                    <div
+                      className={`p-2 rounded-full transition-colors ${
+                        activeReactions[tweet.id] === ReactionType.Dislike
+                          ? "bg-red-500/10"
+                          : "group-hover:bg-red-500/10"
+                      }`}
+                    >
+                      <GrDislike
+                        className={`w-[18px] h-[18px] ${
+                          activeReactions[tweet.id] === ReactionType.Dislike
+                            ? "fill-current"
+                            : ""
+                        }`}
+                      />
+                    </div>
+                    <span className="text-sm font-medium">
+                      {tweet.dislikes > 0 ? tweet.dislikes : ""}
+                    </span>
+                  </button>
+
+                  {/* Share */}
+                  <button
+                    onClick={() =>
+                      handleShare(tweet.author, tweet.id, tweet.topic)
+                    }
+                    className="group flex items-center space-x-2 text-gray-500 hover:text-blue-400 transition-colors"
+                  >
+                    <div className="p-2 rounded-full group-hover:bg-blue-400/10 transition-colors">
+                      <Share className="w-[18px] h-[18px]" />
+                    </div>
+                  </button>
+
+                  {/* External Link */}
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="group flex items-center space-x-2 text-gray-500 hover:text-blue-400 transition-colors"
+                  >
+                    <Link
+                      href={`https://explorer.solana.com/address/${tweet.id}?cluster=devnet`}
+                    >
+                      <div className="p-2 rounded-full group-hover:bg-blue-400/10 transition-colors">
+                        <ExternalLink className="w-[18px] h-[18px]" />
+                      </div>
+                    </Link>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
+        );
+      })}
     </div>
   );
 };

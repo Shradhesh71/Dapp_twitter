@@ -374,7 +374,7 @@ const XPostComposer = () => {
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  // total 280 + ~120 = 400 characters
   const MAX_CHARS = 280;
   const charCount = text.length;
   const progress = (charCount / MAX_CHARS) * 100;
@@ -412,14 +412,6 @@ const XPostComposer = () => {
     }
   };
 
-  // const handleEmojiClick = (emojiObject: { emoji: string }) => {
-  //   if (activeInput === "topic") {
-  //     setTopic((prev) => prev + emojiObject.emoji);
-  //   } else if (activeInput === "text") {
-  //     setText((prev) => prev + emojiObject.emoji);
-  //   }
-  // };
-
   const uploadToPinata = async (file: any) => {
     if (!file) {
       toast({
@@ -452,7 +444,6 @@ const XPostComposer = () => {
       return fileUrl;
     } catch (error) {
       console.log("Error uploading to Pinata Document:", error);
-      // Show error message to user
       toast({
         description: "Image upload failed. Please try again.",
         title: "Error",
@@ -478,11 +469,19 @@ const XPostComposer = () => {
     setIsPosting(true);
 
     try {
+
+      // if (documentFile) {
+      //   const imgUrl = await uploadToPinata(documentFile);
+      //   if (imgUrl) {
+      //     await initTweet(topic, text, imgUrl);
+      //   }
+      // } else {
+        // await initTweet(topic, text);
+      // }
+
       if (documentFile) {
-        const imgUrl = await uploadToPinata(documentFile);
-        if (imgUrl) {
-          await initTweet(topic, text, imgUrl);
-        }
+        const textWithImageUrl = text + ` SJDECX:${imageUrl}`;
+        await initTweet(topic, textWithImageUrl);
       } else {
         await initTweet(topic, text);
       }
