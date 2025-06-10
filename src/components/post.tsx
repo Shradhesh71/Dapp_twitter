@@ -360,6 +360,8 @@ import axios from "axios";
 import { toast } from "@/hooks/use-toast";
 import { useAppContext } from "@/context/context";
 import EmojiPicker from "emoji-picker-react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 const XPostComposer = () => {
   const { initTweet } = useAppContext()!;
@@ -371,6 +373,7 @@ const XPostComposer = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeInput, setActiveInput] = useState("");
+  const { publicKey } = useWallet();
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -468,15 +471,23 @@ const XPostComposer = () => {
 
     setIsPosting(true);
 
+    if (!publicKey) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet before doing anything.",
+        variant: "destructive",
+      });
+      setIsPosting(false);
+      return;
+    }
     try {
-
       // if (documentFile) {
       //   const imgUrl = await uploadToPinata(documentFile);
       //   if (imgUrl) {
       //     await initTweet(topic, text, imgUrl);
       //   }
       // } else {
-        // await initTweet(topic, text);
+      // await initTweet(topic, text);
       // }
 
       if (documentFile) {
@@ -521,10 +532,15 @@ const XPostComposer = () => {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <h1 className="text-xl font-bold">Compose post</h1>
+          <h1 className="text-3xl bg-gradient-to-r from-pink-500 to-orange-400 bg-clip-text text-transparent font-bold">
+            DEC X
+          </h1>
           {/* <button className="text-gray-400 hover:text-white">
             <X className="w-10 h-10" />
           </button> */}
+          <div className="md:hidden">
+            <WalletMultiButton className="!bg-blue-500 hover:!bg-blue-600 !transition-colors !rounded-full !py-2 !font-bold" />
+          </div>
         </div>
 
         {/* Composer */}
